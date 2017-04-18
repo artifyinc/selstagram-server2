@@ -41,6 +41,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_celery_results',
+    'django_celery_beat',
+    'rest_framework',
+    'instagram',
 ]
 
 MIDDLEWARE = [
@@ -111,3 +115,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.10/howto/static-files/
 
 STATIC_URL = '/static/'
+
+# Broker settings.
+CELERY_BROKER_URL = os.environ.get('BROKER_URL', 'amqp://admin:mypass@localhost:5672//')
+
+# Using the database to store task state and results.
+# CELERY_RESULT_BACKEND = 'db+postgresql://postgres:postgres@localhost/postgres'
+CELERY_RESULT_BACKEND = 'django-db'
