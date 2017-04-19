@@ -117,7 +117,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 # Broker settings.
-CELERY_BROKER_URL = os.environ.get('BROKER_URL', 'amqp://admin:mypass@localhost:5672//')
+CELERY_BROKER_URL = os.environ.get('BROKER_URL', 'amqp://guest:guest@localhost:5672//')
 
 # Using the database to store task state and results.
 # CELERY_RESULT_BACKEND = 'db+postgresql://postgres:postgres@localhost/postgres'
