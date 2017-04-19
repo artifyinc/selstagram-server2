@@ -37,8 +37,8 @@ cd ${DIR}/selstagram2
 eb use ${ENVIRONMENT_NAME}
 
 
-BUNDLE=../webserver_${DATE}.zip
-S3_KEY=webserver_${DATE}.zip
+BUNDLE=../${ENVIRONMENT_NAME}_${DATE}.zip
+S3_KEY=${ENVIRONMENT_NAME}_${DATE}.zip
 VERSION_LABEL=${ENVIRONMENT_NAME}-${VERSION}
 
 rm -rf ./.ebextensions && cp -R ${DIR}/${EBEXTENSION} .ebextensions && \
