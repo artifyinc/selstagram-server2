@@ -14,4 +14,4 @@ CELERY_APP="selstagram2.celerybeat"
 CELERYBEAT_CHDIR="/opt/python/current/app"
 
 # Extra arguments to celerybeat
-CELERYBEAT_OPTS="--schedule=/var/run/celery/celerybeat-schedule --broker=amqp://guest:guest@localhost:5672//"
+CELERYBEAT_OPTS="--schedule=/var/run/celery/celerybeat-schedule"
