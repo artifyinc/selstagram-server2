@@ -34,24 +34,27 @@ echo "version = ${VERSION}"
 
 cd ${DIR}/selstagram2
 
-eb use ${ENVIRONMENT_NAME}
-
-
-BUNDLE=../${ENVIRONMENT_NAME}_${DATE}.zip
-S3_KEY=${ENVIRONMENT_NAME}_${DATE}.zip
 VERSION_LABEL=${ENVIRONMENT_NAME}-${VERSION}
 
 rm -rf ./.ebextensions && cp -R ${DIR}/${EBEXTENSION} .ebextensions && \
-zip ${BUNDLE}  -r * .ebextensions .elasticbeanstalk && \
-rm -rf ./.ebextensions && \
-aws s3 cp ${BUNDLE} s3://${S3_BUCKET}/ && \
-aws elasticbeanstalk create-application-version \
-    --process \
-    --application-name selstagram \
-    --version-label ${VERSION_LABEL} \
-    --source-bundle S3Bucket=${S3_BUCKET},S3Key=${S3_KEY} \
-&&
-eb deploy --version ${VERSION_LABEL}
+eb use ${ENVIRONMENT_NAME} && eb deploy ${ENVIRONMENT_NAME} -l "${VERSION_LABEL}" && \
+rm -rf ./.ebextensions
+
+#BUNDLE=../${ENVIRONMENT_NAME}_${DATE}.zip
+#S3_KEY=${ENVIRONMENT_NAME}_${DATE}.zip
+
+#
+#rm -rf ./.ebextensions && cp -R ${DIR}/${EBEXTENSION} .ebextensions && \
+#zip ${BUNDLE}  -r * .ebextensions .elasticbeanstalk && \
+#rm -rf ./.ebextensions && \
+#aws s3 cp ${BUNDLE} s3://${S3_BUCKET}/ && \
+#aws elasticbeanstalk create-application-version \
+#    --process \
+#    --application-name selstagram \
+#    --version-label ${VERSION_LABEL} \
+#    --source-bundle S3Bucket=${S3_BUCKET},S3Key=${S3_KEY} \
+#&&
+#eb deploy --version ${VERSION_LABEL}
 
 cd -
 
