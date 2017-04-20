@@ -10,6 +10,7 @@ from selstagram2 import utils
 from selstagram2.celery import app
 from .crawler import InstagramCrawler
 
+TWO_HOURS_IN_SECONDS = 3600 * 2
 logger = get_task_logger(__name__)
 
 
@@ -26,7 +27,7 @@ def test(arg):
     print(arg)
 
 
-@app.task(bind=True)
+@app.task(bind=True, time_limit=TWO_HOURS_IN_SECONDS, soft_time_limit=TWO_HOURS_IN_SECONDS)
 def crawl_instagram_medias_by_tag(self, tag, date_str=None, **kwargs):
     instagram_crawler = InstagramCrawler(directory=None,
                                          profile=None,
