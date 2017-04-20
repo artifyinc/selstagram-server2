@@ -1,10 +1,7 @@
 from django.db import models
-
 from model_utils.models import TimeStampedModel
 
 from selstagram2 import utils
-
-# Create your models here.
 
 
 class StringHelperModelMixin(object):
@@ -52,4 +49,4 @@ class InstagramMedia(StringHelperModelMixin, TimeStampedModel):
     votes = models.PositiveIntegerField(default=0)
 
     def __str__(self):
-        return self.field_list_to_string([self.source_date, self.code, self.caption])
+        return self.field_list_to_string([self.id, self.source_date, self.code, self.source_url, self.caption])
