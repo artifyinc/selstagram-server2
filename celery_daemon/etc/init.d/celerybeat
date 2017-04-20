@@ -90,10 +90,10 @@ _config_sanity() {
 
 scripts=""
 
-if test -f /etc/default/celeryd; then
-    scripts="/etc/default/celeryd"
-    _config_sanity /etc/default/celeryd
-    . /etc/default/celeryd
+if test -f /etc/default/celerybeat; then
+    scripts="/etc/default/celerybeat"
+    _config_sanity /etc/default/celerybeat
+    . /etc/default/celerybeat
 fi
 
 EXTRA_CONFIG="/etc/default/${SCRIPT_NAME}"

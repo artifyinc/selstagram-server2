@@ -15,3 +15,5 @@ CELERYBEAT_CHDIR="/opt/python/current/app"
 
 # Extra arguments to celerybeat
 CELERYBEAT_OPTS="--schedule=/var/run/celery/celerybeat-schedule"
+
+CELERYBEAT_LOG_LEVEL="DEBUG"
