@@ -5,11 +5,12 @@ import datetime
 from dateutil.relativedelta import relativedelta
 from django.utils import timezone as django_timezone
 from pytz import timezone as pytz_timezone
+from pytz import UTC
 
 
 class BranchUtil(object):
     SEOUL_TIMEZONE = pytz_timezone('Asia/Seoul')
-    UTC = pytz_timezone('UTC')
+    UTC = UTC
 
     @staticmethod
     def yesterday():
@@ -48,17 +49,23 @@ class BranchUtil(object):
         return dt.astimezone(cls.SEOUL_TIMEZONE)
 
     @classmethod
-    def calc_utc_min_max_datetime(cls, date=None):
-        if date is None:
-            date = BranchUtil.today()
+    def utc_datetime_range(cls, date, timezone=SEOUL_TIMEZONE):
+        from_time = timezone.localize(datetime.datetime.combine(date, datetime.time.min))
+        to_time = timezone.localize(datetime.datetime.combine(date, datetime.time.max))
 
-        dt = cls.date_to_datetime(date)
-        from_datetime = datetime.datetime.combine(dt.date(), datetime.time.min)
-        from_datetime = cls.localize(from_datetime)
-        from_datetime = cls.to_utc(from_datetime)
+        return cls.to_utc_time(from_time), cls.to_utc_time(to_time)
 
-        to_datetime = datetime.datetime.combine(dt.date(), datetime.time.max)
-        to_datetime = cls.localize(to_datetime)
-        to_datetime = cls.to_utc(to_datetime)
+    @classmethod
+    def to_utc_time(cls, dt):
+        if not dt.tzinfo:
+            dt = cls.SEOUL_TIMEZONE.localize(dt)
 
-        return from_datetime, to_datetime
+        return dt.astimezone(cls.UTC)
+
+
+class HeaderUtil(object):
+    CLIENT_TIMEZONE = 'x-client-timezone'
+
+    @classmethod
+    def make_request_header_name(cls, header_name):
+        return 'HTTP_' + header_name.upper().replace('-', '_')

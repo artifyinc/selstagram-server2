@@ -13,6 +13,7 @@ flower==0.9.1
 instaLooter==0.8.2
 kombu==4.0.2
 munch==2.1.1
+python-dateutil==2.6.0
 psycopg2==2.7.1
 pytz==2017.2
 SQLAlchemy==1.1.9

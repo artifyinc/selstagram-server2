@@ -1,4 +1,6 @@
+from dateutil.relativedelta import relativedelta
 from django.test import TestCase
+from django.utils import timezone as django_timezone
 from munch import Munch
 from rest_framework import status
 from rest_framework.pagination import LimitOffsetPagination
@@ -45,16 +47,16 @@ class TagsAPITest(test_mixins.InstagramMediaMixin, APITestCase):
 
 
 class MediaAPITest(test_mixins.InstagramMediaMixin, APITestCase):
+    def setUp(self):
+        self.client.defaults.update({utils.HeaderUtil.CLIENT_TIMEZONE: 'Asia/Seoul'})
+
     def test_media(self):
         # Given : Create 1000 dummy InstagramMedia
         size = 1000
         self.create_instagram_media(size)
 
         # When : Invoking media api
-        # response = self.client.get('/tags/{tag_name}/media/recent/'.format(tag_name='셀스타그램'))
-
         response = self.client.get('/tags/셀스타그램/media/')
-
         # Then : InstagramMediaPageNation.default_limit numbers of media must be received
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -126,11 +128,12 @@ class MediaAPITest(test_mixins.InstagramMediaMixin, APITestCase):
         self.assertSequenceEqual(ids, list(map(lambda item: item['id'], media_.results)))
 
     def test_media_pagenation_with_removal_front_entries(self):
-        # Given : Create 1000 dummy InstagramMedia and delete 250 media from id=1 to id=250
+        # Given : Create 1000 dummy InstagramMedia
+        # and delete 250 media from id=1 to id=250
         size = 1000
         self.create_instagram_media(size)
         number_of_object_to_delete = 250
-        delete_result = instagram_models.InstagramMedia.objects.\
+        delete_result = instagram_models.InstagramMedia.objects. \
             filter(id__lte=number_of_object_to_delete).delete()
 
         self.assertEqual(delete_result[0], number_of_object_to_delete)
@@ -150,6 +153,79 @@ class MediaAPITest(test_mixins.InstagramMediaMixin, APITestCase):
         ids = range(offset + 1 + number_of_object_to_delete, offset + default_limit + 1 + number_of_object_to_delete)
         self.assertEqual(len(ids), default_limit)
         self.assertSequenceEqual(ids, list(map(lambda item: item['id'], media_.results)))
+
+    def test_media_today_pagenation_offset(self):
+        # Given :
+        #  1000 dummy InstagramMedia were created yesterday of which tag = '셀스타그램'
+        #  1000 dummy InstagramMedia were created yesterday of which tag = '셀스타그램n'
+        #  1000 dummy InstagramMedia were created today of which tag = '셀스타그램'
+        #  1000 dummy InstagramMedia were created today of which tag = '셀스타그램n'
+
+        self.create_tags(2)
+        tag = instagram_models.Tag.objects.get(id=1)
+        tag2 = instagram_models.Tag.objects.get(id=2)
+
+        size = 1000
+        # Create 1000 media crawled yesterday of which tag = '셀스타그램'
+        self.create_instagram_media_adays_ago(-1, size, tag=tag)
+        # Create 1000 media crawled yesterday of which tag = '셀스타그램n'
+        self.create_instagram_media_adays_ago(-1, size, tag=tag2)
+
+        # Create 1000 media crawled today of which tag = '셀스타그램'
+        self.create_instagram_media_adays_ago(0, size, tag=tag)
+        # Create 1000 media crawled today of which tag = '셀스타그램n'
+        self.create_instagram_media_adays_ago(0, size, tag=tag2)
+
+        first_object = instagram_models.InstagramMedia.objects.first()
+        last_object = instagram_models.InstagramMedia.objects.last()
+
+        self.assertEqual(first_object.created.date(),
+                         utils.BranchUtil.today() + relativedelta(days=-1))
+        self.assertEqual(last_object.created.date(),
+                         utils.BranchUtil.today())
+
+        # When : Invoking media recent api with limit=100 and offset=37
+
+        today = django_timezone.now().date().isoformat()
+        response = self.client.get('/tags/셀스타그램/media/{today}/first_entry_id_of_the_date/'
+                                   .format(today=today))
+        first_id = response.data['id']
+
+        limit = 5
+        response = self.client.get('/tags/셀스타그램/media/'
+                                   '?limit={limit}&offset={offset}'
+                                   .format(limit=limit, offset=first_id - 1))
+
+        self.assertSequenceEqual([medium['id'] for medium in response.data['results']],
+                                 range(first_id, first_id + limit))
+
+    def test_first_entry_id_of_the_date(self):
+        # Given : 1000 dummy InstagramMedia were created yesterday
+        #  and additional 1000 InstagramMedia are created now
+
+        instagram_models.InstagramMedia()
+        size = 1000
+        # Create 1000 media crawled yesterday
+        self.create_instagram_media_adays_ago(-1, size)
+        # Create 1000 media crawled today
+        self.create_instagram_media_adays_ago(0, size)
+
+        self.assertEqual(instagram_models.InstagramMedia.objects.first().created.date(),
+                         utils.BranchUtil.today() + relativedelta(days=-1))
+        self.assertEqual(instagram_models.InstagramMedia.objects.last().created.date(),
+                         utils.BranchUtil.today())
+
+        # When : get date_offset of today
+        today = django_timezone.now().date().isoformat()
+        response = self.client.get('/tags/셀스타그램/media/{today}/first_entry_id_of_the_date/'
+                                   .format(today=today),
+                                   HTTP_X_CLIENT_TIMEZONE='Asia/Seoul')
+
+        # Then: first_id = 1001
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        first_id = response.data['id']
+        self.assertEqual(first_id - 1, size)
+        self.assertEqual(response.data['date'], today)
 
 
 class CrawlingTaskTest(TestCase):
