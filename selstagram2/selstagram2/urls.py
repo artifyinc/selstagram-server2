@@ -13,9 +13,20 @@ Including another URLconf
     1. Import the include() function: from django.conf.urls import url, include
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
-from django.conf.urls import url
+from django.conf.urls import url, include
 from django.contrib import admin
+from rest_framework_nested import routers
+
+from instagram import views as instagram_viewsets
+
+router = routers.DefaultRouter()
+router.register(r'tags', instagram_viewsets.TagViewSet)
+
+tags_nested_router = routers.NestedDefaultRouter(router, r'tags', lookup='tag')
+tags_nested_router.register(r'media', instagram_viewsets.MediumViewSet, base_name='media-viewset')
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
+    url(r'^', include(router.urls)),
+    url(r'^', include(tags_nested_router.urls))
 ]
