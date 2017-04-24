@@ -20,7 +20,7 @@ class TagViewSet(viewsets.ModelViewSet):
 class MediumViewSet(view_mixins.GlobalServiceMixin, viewsets.ModelViewSet):
     queryset = instagram_models.InstagramMedia.objects.all().order_by('id')
     serializer_class = instagram_serializers.InstagramMediumSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly, permissions.HasClientTimezone)
+    permission_classes = (IsAuthenticatedOrReadOnly, permissions.EnsureClientTimezone)
 
     @detail_route(url_path='first_entry_id_of_the_date')
     def first_entry_id_of_the_date(self, request, pk=None, **kwargs):
