@@ -1,5 +1,6 @@
 from dateutil.relativedelta import relativedelta
 from django.test import TestCase
+from django.test import override_settings
 from django.utils import timezone as django_timezone
 from munch import Munch
 from rest_framework import status
@@ -9,7 +10,7 @@ from rest_framework.test import APITestCase
 from instagram.crawler import InstagramCrawler
 from selstagram2 import utils, test_mixins
 from . import models as instagram_models
-from .tasks import crawl_instagram_medias_by_tag
+from .tasks import crawl_instagram_medias_by_tag, collect_popular_statistics, extract_popular, create_popular_media
 
 
 # Create your tests here.
@@ -262,3 +263,49 @@ class CrawlingTaskTest(TestCase):
         # Then: There are 100 more medias than before
         count_after_crawling = instagram_models.InstagramMedia.objects.count()
         self.assertEqual(count_before_crawling + limit, count_after_crawling)
+
+
+class StatisticsTaskTest(test_mixins.InstagramMediaMixin, TestCase):
+    def test_create_popular_media(self):
+        # Given: 1000 media
+        self.create_instagram_media(1000)
+
+        # When: get daily statistics
+        stats = collect_popular_statistics('셀스타그램')
+
+        # Then:
+        queryset = instagram_models.InstagramMedia.objects.all().order_by('id')
+        self.assertEqual(stats.first_medium, queryset.first())
+        self.assertEqual(stats.last_medium, queryset.last())
+        self.assertEqual(stats.number_of_media, queryset.count())
+
+    def test_create_popular_media(self):
+        # Given: 1000 media
+        size = 1000
+        self.create_instagram_media(size)
+        stats_id = collect_popular_statistics('셀스타그램')
+
+        stats = instagram_models.PopularStatistics.objects.get(id=stats_id)
+
+        # When: create popular media
+        before_popular_count = instagram_models.PopularMedium.objects.count()
+        create_popular_media(stats.id)
+        after_popular_count = instagram_models.PopularMedium.objects.count()
+
+        # Then: PopularMedia were created
+        self.assertLess(before_popular_count, after_popular_count)
+        self.assertEqual(size, stats.number_of_media)
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    def test_extract_popular(self):
+        # Given: 1000 media
+        size = 1000
+        self.create_instagram_media(size)
+
+        # When:
+        before_popular_count = instagram_models.PopularMedium.objects.count()
+        extract_popular('셀스타그램')
+
+        # Then: PopularMedia were created
+        after_popular_count = instagram_models.PopularMedium.objects.count()
+        self.assertLess(before_popular_count, after_popular_count)
