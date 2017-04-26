@@ -1,6 +1,6 @@
 from dateutil import parser as isoformat_parser
 from rest_framework import viewsets
-from rest_framework.decorators import detail_route
+from rest_framework.decorators import detail_route, list_route
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
@@ -44,3 +44,20 @@ class MediumViewSet(view_mixins.GlobalServiceMixin, viewsets.ModelViewSet):
         return Response({'timezone': client_timezone.zone,
                          'date': date.isoformat(),
                          'id': first_entry_for_the_day.id})
+
+    @list_route(url_path='popular')
+    def popular(self, request, **kwargs):
+        tag_name = kwargs['tag_name']
+        queryset = self.filter_queryset(instagram_models.PopularMedium.objects.
+                                        filter(instagram_medium__tag__name=tag_name)
+                                        .order_by('id'))
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            page = [popular_medium.instagram_medium for popular_medium in page]
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        result_list = [popular_medium.instagram_medium for popular_medium in queryset]
+        serializer = self.get_serializer(result_list, many=True)
+        return Response(serializer.data)

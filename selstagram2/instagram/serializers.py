@@ -16,3 +16,10 @@ class InstagramMediumSerializer(serializers.ModelSerializer):
     class Meta:
         model = instagram_models.InstagramMedia
         fields = '__all__'
+
+
+class PopularMediumSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = instagram_models.PopularMedium
+        fields = ['id', 'instagram_medium']
+        depth = 1
