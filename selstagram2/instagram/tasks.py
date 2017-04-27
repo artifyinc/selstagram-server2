@@ -144,7 +144,7 @@ def collect_popular_statistics(self, tag_name, **kwargs):
 
     df = read_frame(queryset, index_col='id')
 
-    target_percentiles = np.arange(0.1, 1.01, 0.1)
+    target_percentiles = np.arange(0.9, 1.001, 0.01)
     like_count_percentiles = '|'.join([str(df['like_count'].quantile(q))
                                        for q in target_percentiles])
     comment_count_percentiles = '|'.join([str(df['comment_count'].quantile(q))
@@ -184,8 +184,11 @@ def create_popular_media(self, popular_statistics_id, **kwargs):
     id_range = (popular_statistics.first_medium.id, popular_statistics.last_medium.id)
 
     like_count_percentiles = popular_statistics.like_count_percentiles.split('|')
-    like_count_lower_limit = float(like_count_percentiles[4])
-    like_count_upper_limit = float(like_count_percentiles[7])
+
+    # FIXME
+    # remove hard coded value 9, 10 and read these from property at runtime
+    like_count_lower_limit = float(like_count_percentiles[9])
+    like_count_upper_limit = float(like_count_percentiles[10])
     like_count_range = (like_count_lower_limit, like_count_upper_limit)
 
     queryset = instagram_models.InstagramMedia.objects \
