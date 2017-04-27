@@ -1,11 +1,13 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import datetime
+from unittest.mock import patch
 from urllib import request
 
 import numpy as np
 from celery import chain
 from celery.utils.log import get_task_logger
+from dateutil.relativedelta import relativedelta
 from django_pandas.io import read_frame
 from instaLooter.utils import get_times_from_cli
 
@@ -16,6 +18,8 @@ from .crawler import InstagramCrawler
 ONE_HOURS_IN_SECONDS = 3600
 TWO_HOURS_IN_SECONDS = 3600 * 2
 THIRTY_MINUTES_IN_SECONDS = 1800
+STATISTICS_SIZE_REQUIREMENT = 1000
+
 logger = get_task_logger(__name__)
 
 
@@ -81,30 +85,58 @@ def crawl_instagram_medias_by_tag(self, tag, date_str=None, **kwargs):
         logger.debug(str(instagram_media))
 
 
-@app.task(bind=True,
-          time_limit=THIRTY_MINUTES_IN_SECONDS,
-          soft_time_limit=THIRTY_MINUTES_IN_SECONDS)
-def collect_popular_statistics(self, tag_name, **kwargs):
+@app.task(bind=True, time_limit=TWO_HOURS_IN_SECONDS, soft_time_limit=TWO_HOURS_IN_SECONDS)
+def crawl_instagram_medias_by_tag_days_ago(self, days_ago, tag, date_str=None, **kwargs):
+    from . import models as instagram_models
+    from selstagram2.test_mixins import InstagramMediaMixin
+
+    created_field = instagram_models.InstagramMedia._meta.get_field('created')
+    modified_field = instagram_models.InstagramMedia._meta.get_field('modified')
+
+    InstagramMediaMixin.reset_field_default(created_field, modified_field)
+
+    def my_now():
+        dt = utils.BranchUtil.now() + relativedelta(days=days_ago)
+        return dt
+
+    with patch.object(created_field, 'default', new=my_now) as mock_created_default:
+        with patch.object(modified_field, 'default', new=my_now) as mock_modified_default:
+            crawl_instagram_medias_by_tag(tag, date_str, **kwargs)
+
+    InstagramMediaMixin.reset_field_default(created_field, modified_field)
+
+
+def _get_target_queryset(tag, end_time):
     from . import models as instagram_models
 
     last_statistics = instagram_models.PopularStatistics.objects \
-        .filter(tag__name=tag_name).last()
+        .filter(tag=tag).last()
 
     if not last_statistics:
         start_id_exclusive = -1
     else:
         start_id_exclusive = last_statistics.last_medium.id
 
+    queryset = instagram_models.InstagramMedia.objects \
+        .filter(tag=tag,
+                id__gt=start_id_exclusive,
+                created__lte=end_time) \
+        .order_by('id')
+
+    return queryset
+
+
+@app.task(bind=True,
+          time_limit=THIRTY_MINUTES_IN_SECONDS,
+          soft_time_limit=THIRTY_MINUTES_IN_SECONDS)
+def collect_popular_statistics(self, tag_name, **kwargs):
+    from . import models as instagram_models
     tag = instagram_models.Tag.objects.get(name=tag_name)
-
-    queryset = \
-        instagram_models.InstagramMedia.objects \
-            .filter(tag=tag,
-                    id__gt=start_id_exclusive)
-
+    end_time = kwargs.get('end_time', utils.BranchUtil.now() - relativedelta(hours=48))
+    queryset = _get_target_queryset(tag, end_time)
     number_of_media = queryset.count()
 
-    if number_of_media == 0:
+    if number_of_media < STATISTICS_SIZE_REQUIREMENT:
         return
 
     first_medium = queryset.first()
@@ -141,7 +173,12 @@ def collect_popular_statistics(self, tag_name, **kwargs):
 def create_popular_media(self, popular_statistics_id, **kwargs):
     from . import models as instagram_models
 
-    popular_statistics = instagram_models.PopularStatistics.objects.get(id=popular_statistics_id)
+    try:
+        popular_statistics = instagram_models.PopularStatistics.objects.get(id=popular_statistics_id)
+    except instagram_models.PopularStatistics.DoesNotExist as e:
+        logger.debug(e)
+        raise e
+
     tag = popular_statistics.tag
 
     id_range = (popular_statistics.first_medium.id, popular_statistics.last_medium.id)
@@ -182,7 +219,7 @@ def create_popular_media(self, popular_statistics_id, **kwargs):
           time_limit=ONE_HOURS_IN_SECONDS,
           soft_time_limit=ONE_HOURS_IN_SECONDS)
 def extract_popular(self, tag_name, **kwargs):
-    s = chain(collect_popular_statistics.s(tag_name, kwargs=kwargs),
-              create_popular_media.s(kwargs=kwargs))
+    s = chain(collect_popular_statistics.s(tag_name, **kwargs),
+              create_popular_media.s(**kwargs))
     res = s()
     return res

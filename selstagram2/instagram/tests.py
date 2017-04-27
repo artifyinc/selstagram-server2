@@ -9,7 +9,8 @@ from rest_framework.test import APITestCase
 from instagram.crawler import InstagramCrawler
 from selstagram2 import utils, test_mixins
 from . import models as instagram_models
-from .tasks import crawl_instagram_medias_by_tag, collect_popular_statistics, create_popular_media
+from .tasks import crawl_instagram_medias_by_tag, collect_popular_statistics, create_popular_media, \
+    STATISTICS_SIZE_REQUIREMENT, crawl_instagram_medias_by_tag_days_ago
 
 
 # Create your tests here.
@@ -229,8 +230,8 @@ class MediaAPITest(test_mixins.InstagramMediaMixin, APITestCase):
 
     def test_popular(self):
         # Given:
-        size = 1000
-        self.create_popular_media(size)
+        size = STATISTICS_SIZE_REQUIREMENT
+        self.create_popular_media(size, end_time=utils.BranchUtil.now() + relativedelta(minutes=2))
 
         # When:
         response = self.client.get('/tags/셀스타그램/media/popular/')
@@ -283,14 +284,32 @@ class CrawlingTaskTest(TestCase):
         count_after_crawling = instagram_models.InstagramMedia.objects.count()
         self.assertEqual(count_before_crawling + limit, count_after_crawling)
 
+    def test_crawl_task_days_ago(self):
+        # Given:
+        count_before_crawling = instagram_models.InstagramMedia.objects.count()
+
+        # When: Getting 100 medias tagged by 셀스타그램
+        tag = "셀스타그램"
+        limit = 100
+        days_ago = -3
+        crawl_instagram_medias_by_tag_days_ago(days_ago, tag, limit=limit)
+
+        # Then: There are 100 more medias than before
+        count_after_crawling = instagram_models.InstagramMedia.objects.count()
+        self.assertEqual(count_before_crawling + limit, count_after_crawling)
+
+        date = utils.BranchUtil.today() + relativedelta(days=days_ago)
+        for created in instagram_models.InstagramMedia.objects.values_list('created'):
+            self.assertEqual(created.date(), date)
+
 
 class StatisticsTaskTest(test_mixins.InstagramMediaMixin, TestCase):
     def test_collect_popular_media(self):
-        # Given: 1000 media
-        self.create_instagram_media(1000)
+        # Given: STATISTICS_SIZE_REQUIREMENT media
+        self.create_instagram_media(STATISTICS_SIZE_REQUIREMENT)
 
         # When: get daily statistics
-        stats_id = collect_popular_statistics('셀스타그램')
+        stats_id = collect_popular_statistics('셀스타그램', end_time=utils.BranchUtil.now() + relativedelta(minutes=2))
         stats = instagram_models.PopularStatistics.objects.get(id=stats_id)
 
         # Then:
@@ -300,10 +319,10 @@ class StatisticsTaskTest(test_mixins.InstagramMediaMixin, TestCase):
         self.assertEqual(stats.number_of_media, queryset.count())
 
     def test_create_popular_media(self):
-        # Given: 1000 media
-        size = 1000
+        # Given: STATISTICS_SIZE_REQUIREMENT media
+        size = STATISTICS_SIZE_REQUIREMENT
         self.create_instagram_media(size)
-        stats_id = collect_popular_statistics('셀스타그램')
+        stats_id = collect_popular_statistics('셀스타그램', end_time=utils.BranchUtil.now() + relativedelta(minutes=2))
 
         stats = instagram_models.PopularStatistics.objects.get(id=stats_id)
 
@@ -321,7 +340,7 @@ class StatisticsTaskTest(test_mixins.InstagramMediaMixin, TestCase):
         before_popular_count = instagram_models.PopularMedium.objects.count()
 
         # When:
-        self.create_popular_media(1000)
+        self.create_popular_media(STATISTICS_SIZE_REQUIREMENT, end_time=utils.BranchUtil.now() + relativedelta(minutes=2))
 
         # Then: PopularMedia were created
         after_popular_count = instagram_models.PopularMedium.objects.count()

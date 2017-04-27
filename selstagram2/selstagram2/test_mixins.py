@@ -15,25 +15,27 @@ from selstagram2 import utils
 
 class InstagramMediaMixin(object):
     @classmethod
-    def _reset_field_default(cls, field):
-        if hasattr(field, "_get_default"):
-            delattr(field, "_get_default")
+    def reset_field_default(cls, *fields):
+        for field in fields:
+            if hasattr(field, "_get_default"):
+                delattr(field, "_get_default")
 
     @classmethod
     def create_instagram_media_adays_ago(cls, days_ago, size, **kwargs):
         created_field = instagram_models.InstagramMedia._meta.get_field('created')
         modified_field = instagram_models.InstagramMedia._meta.get_field('modified')
 
+        InstagramMediaMixin.reset_field_default(created_field, modified_field)
+
         def my_now():
             dt = utils.BranchUtil.now() + relativedelta(days=days_ago)
             return dt
 
-        InstagramMediaMixin._reset_field_default(created_field)
-        InstagramMediaMixin._reset_field_default(modified_field)
-
         with patch.object(created_field, 'default', new=my_now) as mock_created_default:
             with patch.object(modified_field, 'default', new=my_now) as mock_modified_default:
                 cls.create_instagram_media(size, **kwargs)
+
+        InstagramMediaMixin.reset_field_default(created_field, modified_field)
 
     @classmethod
     def create_instagram_media(cls, size, **kwargs):
