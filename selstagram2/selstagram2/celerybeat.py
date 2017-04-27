@@ -9,7 +9,6 @@ from selstagram2.celery import app
 
 @app.on_after_configure.connect
 def setup_periodic_tasks(sender, **kwargs):
-
     from instagram.tasks import crawl_instagram_medias_by_tag, extract_popular
 
     sender.add_periodic_task(
@@ -20,8 +19,8 @@ def setup_periodic_tasks(sender, **kwargs):
     )
 
     sender.add_periodic_task(
-        crontab(hour='04', minute=31),
+        crontab(hour=4, minute=31),
         extract_popular.s('셀스타그램'),
-        name='instagram crawler',
+        name='popular extractor',
         expires=3600
     )
