@@ -62,15 +62,18 @@ class MediumViewSet(view_mixins.GlobalServiceMixin, viewsets.ModelViewSet):
         serializer = self.get_serializer(result_list, many=True)
         return Response(serializer.data)
 
-    @list_route(url_path='rank')
-    def rank(self, request, **kwargs):
+    @detail_route(url_path='rank', lookup_field='reverse_order')
+    def rank(self, request, pk=None, **kwargs):
         tag_name = kwargs['tag_name']
-
         tag = instagram_models.Tag.objects.get(name=tag_name)
+
+        reverse_order = int(pk)
+        if not reverse_order:
+            reverse_order = 1
 
         latest_statistics = instagram_models.PopularStatistics.objects \
             .filter(tag=tag) \
-            .order_by('-last_medium').first()
+            .order_by('-last_medium')[reverse_order - 1]
 
         id_list = latest_statistics.top150_ids.split('|')
         queryset = instagram_models.InstagramMedia.objects \
