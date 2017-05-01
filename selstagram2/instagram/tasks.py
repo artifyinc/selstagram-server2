@@ -142,7 +142,7 @@ def collect_popular_statistics(self, tag_name, **kwargs):
     first_medium = queryset.first()
     last_medium = queryset.last()
 
-    df = read_frame(queryset, index_col='id')
+    df = read_frame(queryset, index_col='id', fieldnames=['like_count', 'comment_count'])
 
     target_percentiles = np.arange(0.9, 1.001, 0.01)
     like_count_percentiles = '|'.join([str(df['like_count'].quantile(q))
