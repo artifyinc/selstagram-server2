@@ -149,7 +149,7 @@ def collect_popular_statistics(self, tag_name, **kwargs):
                                        for q in target_percentiles])
     comment_count_percentiles = '|'.join([str(df['comment_count'].quantile(q))
                                           for q in target_percentiles])
-    top102_ids = '|'.join([str(medium_id)
+    top150_ids = '|'.join([str(medium_id)
                            for medium_id in df.sort_values(['like_count'], ascending=False)
                           .index[0:102].tolist()])
 
@@ -160,7 +160,7 @@ def collect_popular_statistics(self, tag_name, **kwargs):
                 number_of_media=number_of_media,
                 like_count_percentiles=like_count_percentiles,
                 comment_count_percentiles=comment_count_percentiles,
-                top102_ids=top102_ids)
+                top150_ids=top150_ids)
 
     logger.debug(popular_statistics)
 
