@@ -248,6 +248,25 @@ class MediaAPITest(test_mixins.InstagramMediaMixin, APITestCase):
         for medium_ in popular_media_list:
             self.assertTrue(lower_limit <= medium_['like_count'] <= upper_limit)
 
+    def test_rank(self):
+        # Given:
+        size = STATISTICS_SIZE_REQUIREMENT
+        self.create_popular_media(size, end_time=utils.BranchUtil.now() + relativedelta(minutes=2))
+
+        # When:
+        response = self.client.get('/tags/셀스타그램/media/rank/')
+
+        # Then:
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        prev = None
+        for _ in response.data:
+            media = Munch(_)
+
+            if prev:
+                self.assertLessEqual(media.like_count, prev.like_count)
+            prev = media
+
 
 class CrawlingTaskTest(TestCase):
     def test_instagram_crawler(self):
