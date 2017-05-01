@@ -60,7 +60,7 @@ class PopularStatistics(StringHelperModelMixin, TimeStampedModel):
     number_of_media = models.PositiveIntegerField()
     like_count_percentiles = models.CharField(max_length=256)
     comment_count_percentiles = models.CharField(max_length=256)
-    top102_ids = models.CharField(max_length=1024)
+    top150_ids = models.CharField(max_length=4096)
 
     def __str__(self):
         return self.field_list_to_string([self.id,
@@ -70,7 +70,7 @@ class PopularStatistics(StringHelperModelMixin, TimeStampedModel):
                                           self.number_of_media,
                                           self.like_count_percentiles,
                                           self.comment_count_percentiles,
-                                          self.top102_ids])
+                                          self.top150_ids])
 
 
 class PopularMedium(StringHelperModelMixin, TimeStampedModel):
