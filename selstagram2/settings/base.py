@@ -120,6 +120,8 @@ CELERY_BROKER_URL = os.environ.get('BROKER_URL', 'amqp://guest:guest@localhost:5
 # CELERY_RESULT_BACKEND = 'db+postgresql://postgres:postgres@localhost/postgres'
 CELERY_RESULT_BACKEND = 'django-db'
 
+CELERY_TIMEZONE = TIME_ZONE
+
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE': 100

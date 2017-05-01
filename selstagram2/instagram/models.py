@@ -50,3 +50,35 @@ class InstagramMedia(StringHelperModelMixin, TimeStampedModel):
 
     def __str__(self):
         return self.field_list_to_string([self.id, self.source_date, self.code, self.source_url, self.caption])
+
+
+class PopularStatistics(StringHelperModelMixin, TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    tag = models.ForeignKey(Tag, on_delete=models.PROTECT)
+    first_medium = models.ForeignKey(InstagramMedia, on_delete=models.PROTECT, related_name='+')
+    last_medium = models.ForeignKey(InstagramMedia, on_delete=models.PROTECT, related_name='+')
+    number_of_media = models.PositiveIntegerField()
+    like_count_percentiles = models.CharField(max_length=256)
+    comment_count_percentiles = models.CharField(max_length=256)
+    top102_ids = models.CharField(max_length=1024)
+
+    def __str__(self):
+        return self.field_list_to_string([self.id,
+                                          self.tag.id,
+                                          self.first_medium.id,
+                                          self.last_medium.id,
+                                          self.number_of_media,
+                                          self.like_count_percentiles,
+                                          self.comment_count_percentiles,
+                                          self.top102_ids])
+
+
+class PopularMedium(StringHelperModelMixin, TimeStampedModel):
+    id = models.AutoField(primary_key=True)
+    instagram_medium = models.ForeignKey(InstagramMedia, on_delete=models.PROTECT)
+    statistics = models.ForeignKey(PopularStatistics, on_delete=models.PROTECT)
+
+    def __str__(self):
+        return self.field_list_to_string([self.id,
+                                          self.instagram_medium,
+                                          self.statistics.id])
