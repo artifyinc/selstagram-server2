@@ -259,13 +259,16 @@ class MediaAPITest(test_mixins.InstagramMediaMixin, APITestCase):
         # Then:
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        prev = None
-        for _ in response.data:
-            media = Munch(_)
+        for daily_rank in response.data:
+            prev = None
+            for _ in daily_rank['instagram_media']:
+                media = Munch(_)
 
-            if prev:
-                self.assertLessEqual(media.like_count, prev.like_count)
-            prev = media
+                if prev:
+                    self.assertLessEqual(media.like_count, prev.like_count)
+                prev = media
+
+        self.fail()
 
 
 class CrawlingTaskTest(TestCase):
