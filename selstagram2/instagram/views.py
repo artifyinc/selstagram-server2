@@ -62,23 +62,31 @@ class MediumViewSet(view_mixins.GlobalServiceMixin, viewsets.ModelViewSet):
         serializer = self.get_serializer(result_list, many=True)
         return Response(serializer.data)
 
-    @detail_route(url_path='rank', lookup_field='reverse_order')
-    def rank(self, request, pk=None, **kwargs):
+    @list_route(url_path='rank')
+    def rank(self, request, **kwargs):
         tag_name = kwargs['tag_name']
         tag = instagram_models.Tag.objects.get(name=tag_name)
 
-        reverse_order = int(pk)
-        if not reverse_order:
-            reverse_order = 1
+        statistics_queryset = instagram_models.PopularStatistics.objects \
+                .filter(tag=tag) \
+                .order_by('-last_medium')
 
-        latest_statistics = instagram_models.PopularStatistics.objects \
-            .filter(tag=tag) \
-            .order_by('-last_medium')[reverse_order - 1]
+        weekly_ranks = []
+        for reverse_order in range(1, 8):
+            if statistics_queryset.count() < reverse_order:
+                continue
 
-        id_list = latest_statistics.top150_ids.split('|')
-        queryset = instagram_models.InstagramMedia.objects \
-            .filter(id__in=id_list) \
-            .order_by('-like_count')
+            popular_statistics = statistics_queryset[reverse_order - 1]
 
-        serializer = self.get_serializer(queryset, many=True)
+            id_list = popular_statistics.top150_ids.split('|')
+            queryset = instagram_models.InstagramMedia.objects \
+                .filter(id__in=id_list) \
+                .order_by('-like_count')
+
+            daily_popular_media = {'date': popular_statistics.created.date(),
+                                   'instagram_media': queryset[:]}
+            weekly_ranks.append(daily_popular_media)
+
+        # serializer = self.get_serializer(queryset, many=True)
+        serializer = instagram_serializers.RankSerializer(weekly_ranks, many=True)
         return Response(serializer.data)

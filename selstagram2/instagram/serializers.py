@@ -23,3 +23,8 @@ class PopularMediumSerializer(serializers.ModelSerializer):
         model = instagram_models.PopularMedium
         fields = ['id', 'instagram_medium']
         depth = 1
+
+
+class RankSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    instagram_media = InstagramMediumSerializer(read_only=True, many=True)
