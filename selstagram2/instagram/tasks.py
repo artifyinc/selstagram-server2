@@ -186,9 +186,10 @@ def create_popular_media(self, popular_statistics_id, **kwargs):
     like_count_percentiles = popular_statistics.like_count_percentiles.split('|')
 
     # FIXME
-    # remove hard coded value 9, 10 and read these from property at runtime
-    like_count_lower_limit = float(like_count_percentiles[9])
-    like_count_upper_limit = float(like_count_percentiles[10])
+    # remove hard coded value 2, 4 and read these from property at runtime
+    # 2, 4 mean the range between 0.92 ~ 0.94 percentiles of like_count
+    like_count_lower_limit = float(like_count_percentiles[2])
+    like_count_upper_limit = float(like_count_percentiles[4])
     like_count_range = (like_count_lower_limit, like_count_upper_limit)
 
     queryset = instagram_models.InstagramMedia.objects \

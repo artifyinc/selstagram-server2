@@ -1,4 +1,6 @@
 from django.db import models
+from django.utils.html import format_html
+
 from model_utils.models import TimeStampedModel
 
 from selstagram2 import utils
@@ -47,6 +49,37 @@ class InstagramMedia(StringHelperModelMixin, TimeStampedModel):
     comment_count = models.PositiveIntegerField()
     like_count = models.PositiveIntegerField()
     votes = models.PositiveIntegerField(default=0)
+
+    is_spam =models.BooleanField(default=False)
+
+    MAGNIFICATION_RATIO = 10
+
+    def anchor_image(self):
+        return format_html('<a href="{source_url}">'
+                           '<img src="{thumbnail_url}" width="{width}" height="{height}" /></a>',
+                           source_url=self.source_url,
+                           thumbnail_url=self.thumbnail_url,
+                           width=self.width/InstagramMedia.MAGNIFICATION_RATIO,
+                           height=self.height/InstagramMedia.MAGNIFICATION_RATIO)
+
+    anchor_image.short_description = 'Image'
+
+    def anchor_code(self):
+        return format_html('<a href="https://instagram.com/p/{code}/">{code}</a>', code=self.code)
+
+    anchor_code.short_description = 'Short URL'
+
+    @classmethod
+    def mark_as_spam(cls, modeladmin, request, queryset):
+        queryset.update(is_spam=True)
+
+    mark_as_spam.short_description = 'Mark instagram media as spam'
+
+    @classmethod
+    def mark_as_ham(cls, modeladmin, request, queryset):
+        queryset.update(is_spam=False)
+
+    mark_as_ham.short_description = 'Mark instagram media as ham'
 
     def __str__(self):
         return self.field_list_to_string([self.id, self.source_date, self.code, self.source_url, self.caption])
