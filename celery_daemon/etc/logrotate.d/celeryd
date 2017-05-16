@@ -1,7 +1,7 @@
 /var/log/celery/*.log {
-    weekly
+    daily
     missingok
-    rotate 52
+    rotate 4
     compress
     delaycompress
     notifempty
