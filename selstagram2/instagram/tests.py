@@ -242,8 +242,8 @@ class MediaAPITest(test_mixins.InstagramMediaMixin, APITestCase):
 
         stats = instagram_models.PopularStatistics.objects.last()
         like_count_percentiles = stats.like_count_percentiles.split('|')
-        lower_limit = int(float(like_count_percentiles[9]))
-        upper_limit = int(float(like_count_percentiles[10]))
+        lower_limit = int(float(like_count_percentiles[2]))
+        upper_limit = int(float(like_count_percentiles[4]))
 
         for medium_ in popular_media_list:
             self.assertTrue(lower_limit <= medium_['like_count'] <= upper_limit)
@@ -267,8 +267,6 @@ class MediaAPITest(test_mixins.InstagramMediaMixin, APITestCase):
                 if prev:
                     self.assertLessEqual(media.like_count, prev.like_count)
                 prev = media
-
-        self.fail()
 
 
 class CrawlingTaskTest(TestCase):
