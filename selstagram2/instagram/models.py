@@ -50,7 +50,7 @@ class InstagramMedia(StringHelperModelMixin, TimeStampedModel):
     like_count = models.PositiveIntegerField()
     votes = models.PositiveIntegerField(default=0)
 
-    is_spam =models.BooleanField(default=False)
+    is_spam = models.BooleanField(default=False)
 
     MAGNIFICATION_RATIO = 10
 
