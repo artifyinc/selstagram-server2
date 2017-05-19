@@ -1,4 +1,12 @@
+import json
+import logging
+import os
+
+import itunesiap
+import requests
 from dateutil import parser as isoformat_parser
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
@@ -8,6 +16,8 @@ from selstagram2 import view_mixins, permissions
 from selstagram2.utils import BranchUtil
 from . import models as instagram_models
 from . import serializers as instagram_serializers
+
+logger = logging.getLogger(__name__)
 
 
 class TagViewSet(viewsets.ModelViewSet):
@@ -90,3 +100,50 @@ class MediumViewSet(view_mixins.GlobalServiceMixin, viewsets.ModelViewSet):
         # serializer = self.get_serializer(queryset, many=True)
         serializer = instagram_serializers.RankSerializer(weekly_ranks, many=True)
         return Response(serializer.data)
+
+
+# FIXME
+# add testcases for verify_receipt
+@csrf_exempt
+def verify_receipt(request):
+    payload = json.loads(str(request.body, 'utf-8'))
+    receipt_data = payload["receipt-data"]
+    if payload.get("new", None):
+        product_identifier = payload["new"]["productIdentifier"]
+        requests.post(url=os.environ['SELSTA101_SLACK_INCOMING_HOOK_URL'],
+                      json={"text": "New Customer: " + product_identifier})
+    code, expires_date_ms = _verify_itunes_receipt(receipt_data=receipt_data)
+    return JsonResponse({"code": code, "expires_date_ms": expires_date_ms})
+
+
+def _verify_itunes_receipt(receipt_data):
+    expires_date_ms = "0"
+    code = 200
+    itunes_shared_secret = os.environ['SELSTA101_ITUNES_SHARED_SECRET']
+
+    try:
+        with itunesiap.env.review:
+            response = itunesiap.verify(receipt_data, itunes_shared_secret)
+            in_apps = response.receipt.in_app
+            for i in in_apps:
+                new_expires_date_ms = i["expires_date_ms"]
+                if int(new_expires_date_ms) > int(expires_date_ms):
+                    expires_date_ms = new_expires_date_ms
+    except itunesiap.exc.InvalidReceipt:
+        code = 400
+        logger.error("invalid receipt")
+    except itunesiap.exc.ItunesServerNotAvailable:
+        code = 444
+        logger.error("ItunesServiceNotAvailable")
+    except itunesiap.exc.ItunesServerNotReachable:
+        code = 408
+        logger.error("iTunesServerNotReachable")
+    except Exception:
+        code = 500
+        logger.error("Unexpected error, itunesiap")
+
+    if code == 500:
+        """This case is a bug in itunesiap module on rare. It will be working to try once again."""
+        return _verify_itunes_receipt(receipt_data)
+
+    return code, expires_date_ms
