@@ -26,6 +26,7 @@ tags_nested_router = routers.NestedDefaultRouter(router, r'tags', lookup='tag')
 tags_nested_router.register(r'media', instagram_viewsets.MediumViewSet, base_name='media-viewset')
 
 urlpatterns = [
+    url(r'^verify_receipt', instagram_viewsets.verify_receipt),
     url(r'^admin/', admin.site.urls),
     url(r'^', include(router.urls)),
     url(r'^', include(tags_nested_router.urls))
